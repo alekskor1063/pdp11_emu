@@ -1,8 +1,24 @@
 #include <stdio.h>
 #include <assert.h>
-#include "pdp11.h"
+#include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
+#include "pdp.h"
 
 byte mem[MEMSIZE]; // memory
+word reg[8]; // register
+int trace_type = INFO; // default output
+
+void trace(int type, char * str, ...) { // степень трассировки, печатаемая строка, переменные
+    if (type > trace_type) {
+        return;
+    } else {
+        va_list ap;
+        va_start(ap, str);
+        vprintf(str, ap);
+        va_end(ap);
+    }
+}
 
 void b_write (adr a, byte b) {
     mem[a] = b;
@@ -44,6 +60,20 @@ void load_file(){
     }
 }
 
+void load_text(FILE * fp){
+    adr address;
+    unsigned short int n;
+    byte k = 0x00;
+    int i;
+    while(fscanf(fp, "%04hx%04hx", &address, &n) != EOF) {
+        for (i = 0; i < n; i++) {
+            fscanf(fp, "%02hhx", &k);
+            b_write(address + i, k);
+            trace(DEBUG, "scaned %d, i = %d, n = %d\n", k, i, n);
+        }
+    }
+}
+
 void mem_dump(adr address, int n){
     for (int i = 0; i < n; i += 2) {
         printf("%06o : %06ho\n",address + i, w_read(address + i));
@@ -68,11 +98,36 @@ void testmem() {
 
 void testmem2(){
     load_file();
-    mem_dump(0x40, 4);
+    mem_dump(0x40, 0x4);
     mem_dump(0x200, 0x12);
 }
 
-int main() {
-    testmem2();
+void testmem3(FILE * file){
+    load_text(file);
+    mem_dump(0x40, 0xC);
+    mem_dump(0x200, 0x26);
+}
+
+int main(int argc, char* argv[]) {
+    FILE * fp;
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-e") == 0 || strcmp(argv[i], "--error") == 0) {
+            trace_type = ERROR;
+        } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--info") == 0) {
+            trace_type = INFO;
+        } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--trace") == 0) {
+            trace_type = TRACE;
+        } else if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0) {
+            trace_type = DEBUG;
+        } else {
+            if((fp = fopen(argv[i], "r")) == NULL) {
+                printf ("File is not found or unreadable.\n");
+                exit(1);
+            } // check file
+        }
+    }
+    trace(ERROR, "Trace type set: %d\n", trace_type);
+    testmem3(fp);
+    fclose(fp);
     return 0;
 }
