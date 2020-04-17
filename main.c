@@ -1,11 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
-
-#define MEMSIZE 65536
-
-typedef unsigned char byte;
-typedef unsigned short int word;
-typedef word adr;
+#include "pdp11.h"
 
 byte mem[MEMSIZE]; // memory
 
