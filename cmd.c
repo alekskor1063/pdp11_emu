@@ -8,7 +8,7 @@
 word get_warg3(word w) { // get an 3-bit argument
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
-    int arg = 0; // argument
+    int arg; // argument
     //trace(TRACE, "word %06o, mode %d, register %d\n", w, mode, r);
     switch(mode) {
         case 0:
@@ -36,7 +36,7 @@ word get_warg3(word w) { // get an 3-bit argument
             return w_read(w_read(reg[r] + w_read(pc) + WORD));
             pc += WORD;
         default:
-            trace(TRACE, "Address mode is higher than 7! Exiting...");
+            trace(ERROR, "Address mode is higher than 7! Exiting...");
             exit(17);
     }
 }
@@ -78,27 +78,35 @@ void write_warg3(word num, word w) { // num to write and command
             pc += WORD;
              */
         default:
-            trace(TRACE, "Address mode is higher than 7! Exiting..");
+            trace(ERROR, "Address mode is higher than 7! Exiting..");
             exit(17);
     }
 }
 
-void do_halt(w) {
-    trace(ERROR, "--- HALTED ---\n");
-    trace(ERROR, "--- R0: %06o R1: %06o R2: %06o R3: %06o R4: %06o R5: %06o SP: %06o PC: %06o ---\n", reg[0], reg[1], reg[2], reg[3], reg[4], reg[5], reg[6], reg[7]);
+void do_halt(word w) {
+    trace(TRACE, "\n");
+    trace(DEBUG, "---- 0:%06o 1:%06o 2:%06o 3:%06o 4:%06o 5:%06o S:%06o P:%06o\n", reg[0], reg[1], reg[2], reg[3], reg[4], reg[5], reg[6], reg[7]);
+    trace(INFO, "\n---------------- halted ---------------\n");
+    trace(INFO, "r0=%06o r2=%06o r4=%06o sp=%06o\nr1=%06o r3=%06o r5=%06o pc=%06o", reg[0],  reg[2], reg[4], reg[6], reg[1], reg[3], reg[5], reg[7]);
     exit(0);
 }
-void do_add(w) {
+void do_add(word w) {
     word dd = get_warg3(w);
     word ss = get_warg3(w >> 6);
-    //trace(TRACE, "mov res is %d, ss is %d, dd is %d\n", ss + dd, ss, dd);
+    trace(TRACE, "      r%d,r%d                  R%d=%06o, R%d=%06o\n", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7) , ss, (w & 7), dd);
     write_warg3(ss + dd, w);
 }
-void do_mov(w) {
+void do_mov(word w) {
     word ss = get_warg3(w >> 6);
+    if (((w >> 6) & 7) == 7) {
+        trace(TRACE, "      #%06o,r%d             [%06o]=%06o\n", ss, (w & 7), reg[((w >> 6) & 7)] - WORD, ss);
+    } else {
+        trace(TRACE, "      r %d,r%d                  R %d=%06o\n", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7), ss);
+    }
     write_warg3(ss, w);
 }
-void do_nothing(w) {
+void do_nothing(word w) {
+    exit(020);
 }
 
 Command cmd[] = {

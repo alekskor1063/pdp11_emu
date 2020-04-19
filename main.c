@@ -69,7 +69,7 @@ void load_text(FILE * fp){
         for (i = 0; i < n; i++) {
             fscanf(fp, "%02hhx", &k);
             b_write(address + i, k);
-            trace(DEBUG, "scaned %d, i = %d, n = %d\n", k, i, n);
+            //trace(DEBUG, "scaned %d, i = %d, n = %d\n", k, i, n);
         }
     }
 }
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
             } // check file
         }
     }
-    trace(ERROR, "Trace type set: %d\n", trace_type);
+    //trace(ERROR, "Trace type set: %d\n", trace_type);
     run_program(fp);
     fclose(fp);
     return 0;
