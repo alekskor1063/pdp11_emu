@@ -76,7 +76,7 @@ void load_text(FILE * fp){
 
 void mem_dump(adr address, int n){
     for (int i = 0; i < n; i += WORD) {
-        printf("%06o : %06ho\n",address + i, w_read(address + i));
+        trace(TRACE, "%06o : %06ho\n",address + i, w_read(address + i));
     }
     /*
     if (n % 2 == 1) {
