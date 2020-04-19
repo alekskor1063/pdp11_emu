@@ -17,7 +17,6 @@
 typedef unsigned char byte;
 typedef unsigned short int word;
 typedef word adr;
-
 #define WORD (sizeof(word) / sizeof(byte))
 
 typedef struct {

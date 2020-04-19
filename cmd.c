@@ -41,6 +41,48 @@ word get_warg3(word w) { // get an 3-bit argument
     }
 }
 
+void write_warg3(word num, word w) { // num to write and command
+    int r = (w & 7); // command register
+    int mode = ((w >> 3) & 7); // mode
+    //trace(TRACE, "word %06o, mode %d, register %d\n", w, mode, r);
+    switch(mode) {
+        case 0:
+            reg[r] = num;
+            break;
+        case 1:
+            w_write(reg[r], num);
+            break;
+        case 2:
+            w_write(reg[r], num);
+            break;
+            pc += WORD;
+        case 3:
+            w_write(w_read(num), reg[r]);
+            pc += WORD;
+            break;
+        case 4:
+            pc -= WORD;
+            //trace(ERROR, "pc is %06o\n", pc);
+            w_write(reg[r], num);
+            break;
+        case 5:
+            pc -= WORD;
+            w_write(w_read(num), reg[r]);
+            break;
+            /*
+        case 6: // not works
+            w_write(reg[r] + w_write(pc) + WORD);
+            pc += WORD;
+        case 7: // not works
+            w_write(w_write(reg[r] + w_write(pc) + WORD));
+            pc += WORD;
+             */
+        default:
+            trace(TRACE, "Address mode is higher than 7! Exiting..");
+            exit(17);
+    }
+}
+
 void do_halt(w) {
     trace(ERROR, "--- HALTED ---\n");
     trace(ERROR, "--- R0: %06o R1: %06o R2: %06o R3: %06o R4: %06o R5: %06o SP: %06o PC: %06o ---\n", reg[0], reg[1], reg[2], reg[3], reg[4], reg[5], reg[6], reg[7]);
@@ -50,11 +92,11 @@ void do_add(w) {
     word dd = get_warg3(w);
     word ss = get_warg3(w >> 6);
     //trace(TRACE, "mov res is %d, ss is %d, dd is %d\n", ss + dd, ss, dd);
-    reg[(w & 7)] = dd + ss;
+    write_warg3(ss + dd, w);
 }
 void do_mov(w) {
     word ss = get_warg3(w >> 6);
-    reg[(w & 7)] = ss;
+    write_warg3(ss, w);
 }
 void do_nothing(w) {
 }
