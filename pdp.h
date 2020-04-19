@@ -24,14 +24,14 @@ typedef struct {
     word mask;
     word opcode;
     char* name;
-    void (* do_func)(void); // если не работает нормально - объявить в другом файле
+    void (* do_func)(word); // если не работает нормально - объявить в другом файле
 } Command;
-
+/*
 struct Arg {
     word val;
     adr adr;
 } ss, dd;
-
+*/
 extern byte mem[MEMSIZE];
 extern word reg[8]; // регистры R0...R7
 #define pc reg[7]
@@ -46,3 +46,5 @@ void b_write (adr a, byte b);
 void w_write (adr a, word w);
 byte b_read (adr a);
 word w_read (adr a);
+
+void get_sd();
