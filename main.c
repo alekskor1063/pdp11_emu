@@ -75,7 +75,7 @@ void load_text(FILE * fp){
 }
 
 void mem_dump(adr address, int n){
-    for (int i = 0; i < n; i += 2) {
+    for (int i = 0; i < n; i += WORD) {
         printf("%06o : %06ho\n",address + i, w_read(address + i));
     }
     /*
@@ -102,10 +102,14 @@ void testmem2(){
     mem_dump(0x200, 0x12);
 }
 
-void testmem3(FILE * file){
+void testmem3(FILE * file) {
     load_text(file);
     mem_dump(0x40, 0xC);
     mem_dump(0x200, 0x26);
+}
+void run_program(FILE * file) {
+    load_text(file);
+    run();
 }
 
 int main(int argc, char* argv[]) {
@@ -127,7 +131,7 @@ int main(int argc, char* argv[]) {
         }
     }
     trace(ERROR, "Trace type set: %d\n", trace_type);
-    testmem3(fp);
+    run_program(fp);
     fclose(fp);
     return 0;
 }

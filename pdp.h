@@ -18,6 +18,8 @@ typedef unsigned char byte;
 typedef unsigned short int word;
 typedef word adr;
 
+#define WORD (sizeof(word) / sizeof(byte))
+
 typedef struct {
     word mask;
     word opcode;
@@ -25,11 +27,20 @@ typedef struct {
     void (* do_func)(void); // если не работает нормально - объявить в другом файле
 } Command;
 
+struct Arg {
+    word val;
+    adr adr;
+} ss, dd;
+
 extern byte mem[MEMSIZE];
 extern word reg[8]; // регистры R0...R7
 #define pc reg[7]
+extern Command cmd[];
 
 extern int trace_type; // тип трассировки
+void trace(int type, char * str, ...);
+
+void run();
 
 void b_write (adr a, byte b);
 void w_write (adr a, word w);
