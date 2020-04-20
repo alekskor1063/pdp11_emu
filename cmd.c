@@ -38,11 +38,11 @@ word get_warg3(word w) { // get an 3-bit argument
             reg[r] -= WORD;
             return w_read(w_read(reg[r]));
         case 6:
-            reg[r] += WORD;
-            return w_read(reg[r] + w_read(pc) + WORD);
+            pc += WORD;
+            return w_read(reg[r] + w_read(pc - WORD));
         case 7:
-            reg[r] += WORD;
-            return w_read(w_read(reg[r] + w_read(pc) + WORD));
+            pc += WORD;
+            return w_read(w_read(reg[r] + w_read(pc - WORD)));
         default:
             trace(ERROR, "Address mode is higher than 7! Exiting...");
             exit(17);
@@ -77,22 +77,22 @@ void write_warg3(word num, word w) { // num to write and command
             pc -= WORD;
             w_write(w_read(num), reg[r]);
             break;
-            /*
-        case 6: // not works
-            w_write(reg[r] + w_write(pc) + WORD);
+        case 6:
+            w_write((reg[r] + w_read(pc) + WORD), num);
             pc += WORD;
-        case 7: // not works
-            w_write(w_write(reg[r] + w_write(pc) + WORD));
+            break;
+        case 7:
+            w_write(w_read(reg[r] + w_read(pc) + WORD), num);
             pc += WORD;
-             */
+            break;
         default:
             trace(ERROR, "Address mode is higher than 7! Exiting..");
-            exit(17);
+            exit(16);
     }
 }
 
 
-byte get_barg3(byte w) {
+byte get_barg3(word w) {
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
     byte arg; // argument
@@ -104,7 +104,7 @@ byte get_barg3(byte w) {
             return b_read(reg[r]);
         case 2:
             arg = b_read(reg[r]);
-            reg[r] += 1;
+            reg[r] += WORD;
             return arg;
         case 3:
             arg = b_read(b_read(reg[r]));
@@ -117,11 +117,11 @@ byte get_barg3(byte w) {
             reg[r] -= WORD;
             return b_read(b_read(reg[r]));
         case 6:
-            reg[r] += WORD;
-            return b_read(reg[r] + b_read(pc) + WORD);
+            pc += WORD;
+            return b_read(reg[r] + b_read(pc - WORD));
         case 7:
-            reg[r] += WORD;
-            return b_read(b_read(reg[r] + b_read(pc) + WORD));
+            pc += WORD;
+            return b_read(b_read(reg[r] + b_read(pc - WORD)));
         default:
             trace(ERROR, "Address mode is higher than 7! Exiting...");
             exit(17);
@@ -131,7 +131,7 @@ byte get_barg3(byte w) {
 void write_barg3(byte num, word w) { // num to write and command
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
-    word ans = (0 | num);
+    byte ans = (0 | num);
     if(num >= 0200) {
         ans += 0xFF00; //если последний "знаковый" бит 1, то первые 8 бит тоже 1
         trace(ERROR, "ss = %d", num);
@@ -161,14 +161,14 @@ void write_barg3(byte num, word w) { // num to write and command
             pc -= WORD;
             b_write(w_read(reg[r]), ans);
             break;
-            /*
-        case 6: // not works
-            w_write(reg[r] + w_write(pc) + WORD);
+        case 6:
             pc += WORD;
-        case 7: // not works
-            w_write(w_write(reg[r] + w_write(pc) + WORD));
+            b_write(reg[r] + b_read(pc - WORD), ans);
+            break;
+        case 7:
             pc += WORD;
-             */
+            b_write(w_read(reg[r] + b_read(pc - WORD)), ans);
+            break;
         default:
             trace(ERROR, "Address mode is higher than 7! Exiting..");
             exit(17);
