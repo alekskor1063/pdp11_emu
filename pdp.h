@@ -30,11 +30,17 @@ extern byte mem[MEMSIZE];
 extern word reg[8]; // регистры R0...R7
 #define pc reg[7]
 extern Command cmd[];
+extern int N;
+extern int Z;
+extern int V;
+extern int C;
 
 extern int trace_type; // тип трассировки
 void trace(int type, char * str, ...);
 
 void run();
+void mem_dump(adr address, int n);
+void display();
 
 void b_write (adr a, byte b);
 void w_write (adr a, word w);

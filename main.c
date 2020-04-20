@@ -8,6 +8,10 @@
 byte mem[MEMSIZE]; // memory
 word reg[8]; // register
 int trace_type = INFO; // default output
+int N = 0;
+int Z = 0;
+int V = 0;
+int C = 0;
 
 void trace(int type, char * str, ...) { // степень трассировки, печатаемая строка, переменные
     if (type > trace_type) {

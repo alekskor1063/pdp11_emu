@@ -5,6 +5,14 @@
 #include <stdlib.h>
 #include "pdp.h"
 
+void change (int flag) {
+    if (flag == 0) {
+        flag = 1;
+    } else {
+        flag = 0;
+    }
+}
+
 word get_warg3(word w) { // get an 3-bit argument
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
@@ -83,7 +91,8 @@ void write_warg3(word num, word w) { // num to write and command
     }
 }
 
-byte get_barg3(byte w){
+
+byte get_barg3(byte w) {
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
     byte arg; // argument
@@ -140,7 +149,7 @@ void write_barg3(byte num, word w) { // num to write and command
             pc += WORD;
             break;
         case 3:
-            b_write(b_read(ans), reg[r]);
+            b_write(w_read(reg[r]), ans);
             pc += WORD;
             break;
         case 4:
@@ -150,7 +159,7 @@ void write_barg3(byte num, word w) { // num to write and command
             break;
         case 5:
             pc -= WORD;
-            b_write(w_read(ans), reg[r]);
+            b_write(w_read(reg[r]), ans);
             break;
             /*
         case 6: // not works
@@ -176,17 +185,48 @@ void do_halt(word w) {
 void do_add(word w) {
     word dd = get_warg3(w);
     word ss = get_warg3(w >> 6);
-    trace(TRACE, "      r%d,r%d                  R%d=%06o, R%d=%06o\n", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7) , ss, (w & 7), dd);
+    trace(TRACE, "      r%d,r%d                  R%d=%06o, R%d=%06o", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7) , ss, (w & 7), dd);
     write_warg3(ss + dd, w);
+    if (ss + dd == 0) {
+        Z = 1;
+    } else {
+        Z = 0;
+    }
+    if (ss + dd > 32768) {
+        N = 1;
+    } else {
+        N = 0;
+    }
+    if ((int)(ss + dd) > 65536) {
+        C = 1;
+    } else {
+        C = 0;
+    }
+    if (ss > 32768 && dd > 32768) {
+        V = 1;
+    } else {
+        V = 0;
+    }
 }
 void do_mov(word w) {
     word ss = get_warg3(w >> 6);
     if (((w >> 6) & 7) == 7) {
-        trace(TRACE, "      #%06o,r%d             [%06o]=%06o\n", ss, (w & 7), reg[((w >> 6) & 7)] - WORD, ss);
+        trace(TRACE, "      #%06o,r%d             [%06o]=%06o", ss, (w & 7), reg[((w >> 6) & 7)] - WORD, ss);
     } else {
-        trace(TRACE, "      r%d,r%d                  R%d=%06o\n", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7), ss);
+        trace(TRACE, "      r%d,r%d                  R%d=%06o", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7), ss);
     }
     write_warg3(ss, w);
+    V = 0;
+    if (ss == 0) {
+        Z = 1;
+    } else {
+        Z = 0;
+    }
+    if (ss > 32768) {
+        N = 1;
+    } else {
+        N = 0;
+    }
 }
 void do_nothing(word w) {
     exit(020);
@@ -198,30 +238,272 @@ void do_sob(word w) {
     if (reg[r] != 0) {
         pc -= WORD * (w & 63);
     }
-    trace(TRACE, "\n");
 }
 
 void do_clr(word w) {
     write_warg3(0, w);
-    trace(TRACE, "\n");
+    N = V = C = 0;
+    Z = 1;
 }
 void do_movb(word w) {
     byte ss = get_barg3(w >> 6);
     if (((w >> 6) & 7) == 7) {
-        trace(TRACE, "      #%06o,r%d             [%06o]=%06o\n", ss, (w & 7), reg[((w >> 6) & 7)] - WORD, ss);
+        trace(TRACE, "      #%06o,r%d             [%06o]=%06o", ss, (w & 7), reg[((w >> 6) & 7)] - WORD, ss);
     } else {
-        trace(TRACE, "      r%d,r%d                  R%d=%06o\n", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7), ss);
+        trace(TRACE, "      r%d,r%d                  R%d=%06o", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7), ss);
     }
     write_barg3(ss, w);
+    V = 0;
+    if (ss == 0) {
+        Z = 1;
+    } else {
+        Z = 0;
+    }
+    if (ss > 32768) {
+        N = 1;
+    } else {
+        N = 0;
+    }
+}
+
+void do_br(word w) {
+    char offset = (char)(w & 0x00FF);
+    pc += WORD * offset;
+}
+
+void do_ccc(word w) {
+    N = Z = V = C = 0;
+}
+
+void do_scc(word w) {
+    N = Z = V = C = 1;
+}
+
+void do_sec(word w) {
+    C = 1;
+}
+
+void do_sev(word w) {
+    V = 1;
+}
+
+void do_sez(word w) {
+    Z = 1;
+}
+
+void do_sen(word w) {
+    N = 1;
+}
+
+void do_clc(word w) {
+    C = 0;
+}
+
+void do_clv(word w) {
+    V = 0;
+}
+
+void do_clz(word w) {
+    Z = 0;
+}
+
+void do_cln(word w) {
+    N = 0;
+}
+
+void do_nop(word w) {
+    int a = malloc(sizeof(int));
+    free(a); // просто бесполезная операция
+}
+
+void do_jmp(word w) {
+    pc = get_warg3(w);
+}
+
+void do_beq(word w) {
+    if (Z == 1) {
+        do_br(w);
+    }
+}
+
+void do_bge(word w) {
+    if ((N ^ V) == 0) {
+        do_br(w);
+    }
+}
+
+void do_bgt(word w) {
+    if (Z == 0 || (N ^ V) == 0) {
+        do_br(w);
+    }
+}
+
+void do_bcc(word w) {
+    if (C == 0) {
+        do_br(w);
+    }
+}
+
+void do_bcs(word w) {
+    if (C == 1) {
+        do_br(w);
+    }
+}
+
+void do_bne(word w) {
+    if (C == 1) {
+        do_br(w);
+    }
+}
+
+void do_blt(word w) {
+    if ((N ^ V) == 1) {
+        do_br(w);
+    }
+}
+
+void do_ble(word w) {
+    if (Z == 1 || (N ^ V) == 1) {
+        do_br(w);
+    }
+}
+
+void do_bpl(word w) {
+    if (N == 0) {
+        do_br(w);
+    }
+}
+
+void do_bmi(word w) {
+    if (N == 1) {
+        do_br(w);
+    }
+}
+
+void do_bhi(word w) {
+    if (C == 0 || Z == 0) {
+        do_br(w);
+    }
+}
+
+void do_blos(word w) {
+    if (C == 1 || Z == 1) {
+        do_br(w);
+    }
+}
+
+void do_bhis(word w) {
+    if (C == 0) {
+        do_br(w);
+    }
+}
+
+void do_blo(word w) {
+    if (C == 1) {
+        do_br(w);
+    }
+}
+
+void do_cmp(word w) { // возможно, работает криво V, C
+    word a = get_warg3(w);
+    word b = get_warg3(w >> 6);
+    if ((a - b) == 0) {
+        Z = 1;
+        N = 0;
+    } else if ((a - b) < 0) {
+        Z = 0;
+        N = 1;
+    }
+    if (a > 32768 && b > 32768) {
+        V = 0;
+    }
+    if (a > 32768 || b > 32768) {
+        C = 0;
+    }
+}
+
+void do_cmpb(word w) { // возможно, работает криво V, C
+    byte a = get_barg3(w);
+    byte b = get_barg3(w >> 6);
+    if ((a - b) == 0) {
+        Z = 1;
+        N = 0;
+    } else if ((a - b) < 0) {
+        Z = 0;
+        N = 1;
+    }
+    if (a > 255 && b > 255) {
+        V = 0;
+    }
+    if (a > 255 || b > 255) {
+        C = 0;
+    }
+
+}
+
+void do_tst(word w) {
+    if (get_warg3(w) == 0) {
+        Z = 1;
+        N = 0;
+    } else if (get_warg3(w) < 0) {
+        N = 1;
+        Z = 0;
+    }
+    V = 0;
+    C = 0;
+}
+
+void do_tstb(word w) {
+    if (get_barg3(w) == 0) {
+        Z = 1;
+        N = 0;
+    } else if ((get_barg3(w) & 0100000) == 0100000) {
+        N = 1;
+        Z = 0;
+    }
+    V = 0;
+    C = 0;
+    trace(INFO, "   [%06o] = %06o        ", w_read(w_read(pc - 2 * WORD) + WORD), get_barg3(w));
 }
 
 Command cmd[] = {
         {0170000, 0010000, "mov", do_mov},
-        {0070000, 0010000, "movb", do_movb},
+        {0170000, 0110000, "movb", do_movb},
         {0170000, 0060000, "add", do_add},
-        {0077000, 0077000, "sob", do_sob},
-        {0007000, 0005000, "clr", do_clr},
+        {0170000, 0020000, "cmp", do_cmp},
+        {0170000, 0120000, "cmpb", do_cmpb},
+        {0177000, 0077000, "sob", do_sob},
+        {0177000, 0005000, "clr", do_clr},
+        {0xFF00, 0x0100, "br", do_br},
+        {0xFF00, 0x0200, "bne", do_bne},
+        {0xFF00, 0x0300, "beq", do_beq},
+        {0xFF00, 0x0400, "bge", do_bge},
+        {0xFF00, 0x0500, "blt", do_blt},
+        {0xFF00, 0x0600, "bgt", do_bgt},
+        {0xFF00, 0x0700, "ble", do_ble},
+        {0xFF00, 0x8000, "bpl", do_bpl},
+        {0xFF00, 0x8100, "bmi", do_bmi},
+        {0xFF00, 0x8200, "bhi", do_bhi},
+        {0xFF00, 0x8300, "blos", do_blos},
+        {0xFF00, 0x8600, "bcc", do_bcc},
+        {0xFF00, 0x8600, "bhis", do_bhis},
+        {0xFF00, 0x8700, "bcs", do_bcs},
+        {0xFF00, 0x8700, "blo", do_blo},
+        {0177700, 0005700, "tst", do_tst},
+        {0177700, 0105700, "tstb", do_tstb},
+        {0177700, 0000100, "jmp", do_jmp},
         {0177777, 0000000, "halt", do_halt},
+        {0177777, 0000240, "nop", do_nop},
+        {0177777, 0000241, "clc", do_clc},
+        {0177777, 0000242, "clv", do_clv},
+        {0177777, 0000244, "clz", do_clz},
+        {0177777, 0000250, "cln", do_cln},
+        {0177777, 0000257, "ccc", do_ccc},
+        {0177777, 0000261, "sec", do_sec},
+        {0177777, 0000262, "sev", do_sev},
+        {0177777, 0000264, "sez", do_sez},
+        {0177777, 0000270, "sen", do_sen},
+        {0177777, 0000277, "scc", do_scc},
         {0177777, 0000001, "nothing", do_nothing}, //  резервная команда
         {0000000, 0000000, "unknown", do_nothing} // команда конца списка, есть пока не доделан код команд
 };
