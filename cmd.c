@@ -104,24 +104,40 @@ byte get_barg3(word w) {
             return b_read(reg[r]);
         case 2:
             arg = b_read(reg[r]);
-            reg[r] += WORD;
+            if (r == 6 || r == 7) {
+                reg[r] += WORD;
+            } else {
+                reg[r] += 1;
+            }
             return arg;
         case 3:
-            arg = b_read(b_read(reg[r]));
-            reg[r] += WORD;
+            arg = b_read(w_read(reg[r]));
+            if (r == 6 || r == 7) {
+                reg[r] += WORD;
+            } else {
+                reg[r] += 1;
+            }
             return arg;
         case 4:
-            reg[r] -= WORD;
+            if (r == 6 || r == 7) {
+                reg[r] -= WORD;
+            } else {
+                reg[r] -= 1;
+            }
             return b_read(reg[r]);
         case 5:
-            reg[r] -= WORD;
-            return b_read(b_read(reg[r]));
+            if (r == 6 || r == 7) {
+                reg[r] -= WORD;
+            } else {
+                reg[r] -= 1;
+            }
+            return b_read(w_read(reg[r]));
         case 6:
             pc += WORD;
-            return b_read(reg[r] + b_read(pc - WORD));
+            return b_read(reg[r] + w_read(pc - WORD));
         case 7:
             pc += WORD;
-            return b_read(b_read(reg[r] + b_read(pc - WORD)));
+            return b_read(b_read(reg[r] + w_read(pc - WORD)));
         default:
             trace(ERROR, "Address mode is higher than 7! Exiting...");
             exit(17);
@@ -163,11 +179,11 @@ void write_barg3(byte num, word w) { // num to write and command
             break;
         case 6:
             pc += WORD;
-            b_write(reg[r] + b_read(pc - WORD), ans);
+            b_write(reg[r] + w_read(pc - WORD), ans);
             break;
         case 7:
             pc += WORD;
-            b_write(w_read(reg[r] + b_read(pc - WORD)), ans);
+            b_write(w_read(reg[r] + w_read(pc - WORD)), ans);
             break;
         default:
             trace(ERROR, "Address mode is higher than 7! Exiting..");
@@ -369,7 +385,7 @@ void do_ble(word w) {
 }
 
 void do_bpl(word w) {
-    if (N == 0) {
+    if (N == 0 && Z == 0) {
         do_br(w);
     }
 }
@@ -454,16 +470,17 @@ void do_tst(word w) {
 }
 
 void do_tstb(word w) {
-    if (get_barg3(w) == 0) {
+    byte b = get_barg3(w);
+    if (b == 0) {
         Z = 1;
         N = 0;
-    } else if ((get_barg3(w) & 0100000) == 0100000) {
+    } else if ((b & 128) == 128) {
         N = 1;
         Z = 0;
     }
     V = 0;
     C = 0;
-    trace(INFO, "   [%06o] = %06o        ", w_read(w_read(pc - 2 * WORD) + WORD), get_barg3(w));
+    trace(INFO, "   [%06o]       ", b);
 }
 
 Command cmd[] = {
