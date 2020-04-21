@@ -395,8 +395,6 @@ void do_cln(word w) {
 }
 
 void do_nop(word w) {
-    int a = malloc(sizeof(int));
-    free(a); // просто бесполезная операция
 }
 
 void do_jmp(word w) {
