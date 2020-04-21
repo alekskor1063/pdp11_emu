@@ -5,14 +5,6 @@
 #include <stdlib.h>
 #include "pdp.h"
 
-void change (int flag) {
-    if (flag == 0) {
-        flag = 1;
-    } else {
-        flag = 0;
-    }
-}
-
 adr get_aarg3(word w) { // get an 3-bit argument
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
