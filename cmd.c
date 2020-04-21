@@ -189,8 +189,7 @@ byte get_barg3(word w) {
 
 void write_barg3(byte num, word w) { // num to write and command
     int r = (w & 7); // command register
-    int mode = ((w >> 3) & 7); // mode
-    byte ans = (0 | num);
+    int mode = ((w >> 3) & 7); //
     /*
     if(num >= 0200) {
         ans += 0xFF00; //если последний "знаковый" бит 1, то первые 8 бит тоже 1
@@ -203,35 +202,35 @@ void write_barg3(byte num, word w) { // num to write and command
     //trace(TRACE, "word %06o, mode %d, register %d\n", w, mode, r);
     switch(mode) {
         case 0:
-            reg[r] = ans;
+            reg[r] = num;
             break;
         case 1:
-            b_write(reg[r], ans);
+            b_write(reg[r], num);
             break;
         case 2:
-            b_write(reg[r], ans);
+            b_write(reg[r], num);
             pc += WORD;
             break;
         case 3:
-            b_write(w_read(reg[r]), ans);
+            b_write(w_read(reg[r]), num);
             pc += WORD;
             break;
         case 4:
             pc -= WORD;
             //trace(ERROR, "pc is %06o\n", pc);
-            b_write(reg[r], ans);
+            b_write(reg[r], num);
             break;
         case 5:
             pc -= WORD;
-            b_write(w_read(reg[r]), ans);
+            b_write(w_read(reg[r]), num);
             break;
         case 6:
             pc += WORD;
-            b_write(reg[r] + w_read(pc - WORD), ans);
+            b_write(reg[r] + w_read(pc - WORD), num);
             break;
         case 7:
             pc += WORD;
-            b_write(w_read(reg[r] + w_read(pc - WORD)), ans);
+            b_write(w_read(reg[r] + w_read(pc - WORD)), num);
             break;
         default:
             trace(ERROR, "Address mode is higher than 7! Exiting..");
@@ -249,28 +248,46 @@ void do_halt(word w) {
 void do_add(word w) {
     word dd = get_warg3(w);
     word ss = get_warg3(w >> 6);
+    word res = ss + dd;
     trace(TRACE, "      r%d,r%d                  R%d=%06o, R%d=%06o", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7) , ss, (w & 7), dd);
-    write_warg3(ss + dd, w);
-    if (ss + dd == 0) {
-        Z = 1;
+    // условия вычитания: если флаг N, то вычитаем из суммы, если она все еще больше 0400, то оставляем флаг
+    if (ss + dd == 0) { // зануление одинаково для слов и байтов
     } else {
         Z = 0;
     }
-    if (ss + dd > 0400) {
-        N = 1;
-    } else {
-        N = 0;
-    }
-    if ((int)(ss + dd) > 01000) {
+    if (N == 1 && ss < 01000 && dd < 01000) { // если отрицательно, но оба слагаемых - байты
+        res -= 0400; // убираем отрицательность и при этом последний байт проглотился - это в carry
         C = 1;
-    } else {
-        C = 0;
+        N = 0;
+        if (res >= 0200) {// если все еще отрицательно
+            N = 1;
+        }
+    } else if (N == 1 && dd < 0200 && ss < 0200) { // контроль знакового переполнения
+        if (res >= 0200) {
+            V = 1;
+        } else {
+            V = 0;
+        }
+    } else { // если видно что не байты
+        if (res > 32768) { // если отрицательные слова, то все переполнится и без нас, останется только поставить флаги
+            N = 1;
+        } else {
+            N = 0;
+        }
+
+        if ((int) (ss + dd) > 65536) {
+            C = 1;
+        } else {
+            C = 0;
+        }
+
+        if (ss < 32768 && dd < 32768 && res > 32768) {
+            V = 1;
+        } else {
+            V = 0;
+        }
     }
-    if (ss > 0400 && dd > 0400) {
-        V = 1;
-    } else {
-        V = 0;
-    }
+    write_warg3(res, w);
 }
 void do_mov(word w) {
     word ss = get_warg3(w >> 6);
@@ -323,7 +340,7 @@ void do_movb(word w) {
     } else {
         Z = 0;
     }
-    if (ss > 32768) {
+    if (ss > 0200) {
         N = 1;
     } else {
         N = 0;
@@ -433,7 +450,7 @@ void do_ble(word w) {
 }
 
 void do_bpl(word w) {
-    if (N == 0 && Z == 0) {
+    if (N == 0) {
         do_br(w);
     }
 }
@@ -522,13 +539,13 @@ void do_tstb(word w) {
     if (b == 0) {
         Z = 1;
         N = 0;
-    } else if ((b & 128) == 128) {
+    } else if ((b & 0200) == 0200) {
         N = 1;
         Z = 0;
     }
     V = 0;
     C = 0;
-    trace(INFO, "   [%06o]       ", b);
+    trace(INFO, "   [no pc+2]=%o       ", b);
 }
 
 void do_jsr(word w){
@@ -548,7 +565,7 @@ void do_rts(word w){
     pc = (reg[r]);
     //reg[r] = pop(sp);
     do_mov((00142600 + r));
-    reg[6] -= WORD;
+    //reg[6] -= WORD;
     trace(DEBUG, "reg is %06o, jump to %06o, info in %06o, r6 is %06o", r, pc, w_read(0200), reg[6]);
 }
 
