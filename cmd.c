@@ -533,10 +533,11 @@ void do_cmpb(word w) { // возможно, работает криво V, C
 }
 
 void do_tst(word w) {
-    if (get_warg3(w) == 0) {
+    word b = get_warg3(w);
+    if (b == 0) {
         Z = 1;
         N = 0;
-    } else if (get_warg3(w) < 0) {
+    } else if ((b & 0100000) == 0100000) { // если знак отрицательный
         N = 1;
         Z = 0;
     }
