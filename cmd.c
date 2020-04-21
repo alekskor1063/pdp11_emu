@@ -569,7 +569,12 @@ void do_jsr(word w){
     adr jump = get_aarg3(w);
     //push_sp(reg[r]);
     //do_mov(0010r26);
+    int a[4] = {N, Z, V, C}; // сохранить флаги, мов может их сломать
     do_mov((0010046 + 0100 * r));
+    N = a[0];
+    Z = a[1];
+    V = a[2];
+    C = a[3];
     reg[r] = pc;
     trace(DEBUG, "reg is %06o, jump to %06o, info in %06o, r6 is %06o", r, jump, w_read(0200), reg[6]);
     pc = jump;
@@ -580,7 +585,12 @@ void do_rts(word w){
     word r = (w & 7);
     pc = (reg[r]);
     //reg[r] = pop(sp);
+    int a[4] = {N, Z, V, C}; // сохранить флаги, мов может их сломать
     do_mov((00142600 + r));
+    N = a[0];
+    Z = a[1];
+    V = a[2];
+    C = a[3];
     //reg[6] -= WORD;
     trace(DEBUG, "reg is %06o, jump to %06o, info in %06o, r6 is %06o", r, pc, w_read(0200), reg[6]);
 }
