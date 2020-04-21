@@ -105,19 +105,19 @@ void write_warg3(word num, word w) { // num to write and command
             break;
         case 2:
             w_write(reg[r], num);
-            pc += WORD;
+            reg[r] += WORD;
             break;
         case 3:
             w_write(w_read(num), reg[r]);
-            pc += WORD;
+            reg[r] += WORD;
             break;
         case 4:
-            pc -= WORD;
+            reg[r] -= WORD;
             //trace(ERROR, "pc is %06o\n", pc);
             w_write(reg[r], num);
             break;
         case 5:
-            pc -= WORD;
+            reg[r] -= WORD;
             w_write(w_read(num), reg[r]);
             break;
         case 6:
@@ -209,19 +209,35 @@ void write_barg3(byte num, word w) { // num to write and command
             break;
         case 2:
             b_write(reg[r], num);
-            pc += WORD;
+            if (r == 6 || r == 7) {
+                reg[r] += WORD;
+            } else {
+                reg[r] += 1;
+            }
             break;
         case 3:
             b_write(w_read(reg[r]), num);
-            pc += WORD;
+            if (r == 6 || r == 7) {
+                reg[r] += WORD;
+            } else {
+                reg[r] += 1;
+            }
             break;
         case 4:
-            pc -= WORD;
+            if (r == 6 || r == 7) {
+                reg[r] -= WORD;
+            } else {
+                reg[r] -= 1;
+            }
             //trace(ERROR, "pc is %06o\n", pc);
             b_write(reg[r], num);
             break;
         case 5:
-            pc -= WORD;
+            if (r == 6 || r == 7) {
+                reg[r] -= WORD;
+            } else {
+                reg[r] -= 1;
+            }
             b_write(w_read(reg[r]), num);
             break;
         case 6:
