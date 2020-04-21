@@ -16,8 +16,8 @@ void run() {
         //trace(TRACE, "%06o: ", pc);
         pc += WORD;
         p++;
-        //mem_dump(0177562, 8);
-        if (p > 30) {
+        //mem_dump(000774, 30);
+        if (p > 110) {
             //exit(9);
         }
         i = 0;

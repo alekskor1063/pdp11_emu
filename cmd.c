@@ -13,6 +13,42 @@ void change (int flag) {
     }
 }
 
+adr get_aarg3(word w) { // get an 3-bit argument
+    int r = (w & 7); // command register
+    int mode = ((w >> 3) & 7); // mode
+    word arg; // argument
+    //trace(TRACE, "word %06o, mode %d, register %d\n", w, mode, r);
+    switch(mode) {
+        case 0:
+            return r;
+        case 1:
+            return reg[r];
+        case 2:
+            arg = reg[r];
+            reg[r] += WORD;
+            return arg;
+        case 3:
+            arg = w_read(reg[r]);
+            reg[r] += WORD;
+            return arg;
+        case 4:
+            reg[r] -= WORD;
+            return reg[r];
+        case 5:
+            reg[r] -= WORD;
+            return w_read(reg[r]);
+        case 6:
+            pc += WORD;
+            return reg[r] + w_read(pc - WORD);
+        case 7:
+            pc += WORD;
+            return w_read(reg[r] + w_read(pc - WORD));
+        default:
+            trace(ERROR, "Address mode is higher than 7! Exiting...");
+            exit(17);
+    }
+}
+
 word get_warg3(word w) { // get an 3-bit argument
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
@@ -39,6 +75,7 @@ word get_warg3(word w) { // get an 3-bit argument
             return w_read(w_read(reg[r]));
         case 6:
             pc += WORD;
+            trace(ERROR, "adr read: %06o", reg[r] + w_read(pc - WORD));
             return w_read(reg[r] + w_read(pc - WORD));
         case 7:
             pc += WORD;
@@ -52,6 +89,12 @@ word get_warg3(word w) { // get an 3-bit argument
 void write_warg3(word num, word w) { // num to write and command
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
+    /*
+    if(num >= 0400) {
+        num -= 0400; //если последний "знаковый" бит 1, то первые 8 бит тоже 1
+        //trace(ERROR, "ss = %d", num);
+    }
+     */
     //trace(TRACE, "word %06o, mode %d, register %d\n", w, mode, r);
     switch(mode) {
         case 0:
@@ -148,10 +191,15 @@ void write_barg3(byte num, word w) { // num to write and command
     int r = (w & 7); // command register
     int mode = ((w >> 3) & 7); // mode
     byte ans = (0 | num);
+    /*
     if(num >= 0200) {
         ans += 0xFF00; //если последний "знаковый" бит 1, то первые 8 бит тоже 1
+        ans = ~ans; // побитово отрицаем
+        ans += 1; // приводим к виду отрицательного числа
+        ans += 0200; // ставим отрицательный бит на место
         trace(ERROR, "ss = %d", num);
     }
+     */
     //trace(TRACE, "word %06o, mode %d, register %d\n", w, mode, r);
     switch(mode) {
         case 0:
@@ -208,17 +256,17 @@ void do_add(word w) {
     } else {
         Z = 0;
     }
-    if (ss + dd > 32768) {
+    if (ss + dd > 0400) {
         N = 1;
     } else {
         N = 0;
     }
-    if ((int)(ss + dd) > 65536) {
+    if ((int)(ss + dd) > 01000) {
         C = 1;
     } else {
         C = 0;
     }
-    if (ss > 32768 && dd > 32768) {
+    if (ss > 0400 && dd > 0400) {
         V = 1;
     } else {
         V = 0;
@@ -227,9 +275,9 @@ void do_add(word w) {
 void do_mov(word w) {
     word ss = get_warg3(w >> 6);
     if (((w >> 6) & 7) == 7) {
-        trace(TRACE, "      #%06o,r%d             [%06o]=%06o", ss, (w & 7), reg[((w >> 6) & 7)] - WORD, ss);
+        trace(TRACE, "      #%06o,r%d             [%06o]=%06o", ss, (w & 7), reg[((w >> 6) & 7)], ss);
     } else {
-        trace(TRACE, "      r%d,r%d                  R%d=%06o", ((w >> 6) & 7), (w & 7), ((w >> 6) & 7), ss);
+        trace(TRACE, "      r%d,r%d                  R%d=%06o", ((w >> 6) & 7), (w & 7), reg[((w >> 6) & 7)], ss);
     }
     write_warg3(ss, w);
     V = 0;
@@ -483,6 +531,27 @@ void do_tstb(word w) {
     trace(INFO, "   [%06o]       ", b);
 }
 
+void do_jsr(word w){
+    word r = ((w >> 6) & 7);
+    adr jump = get_aarg3(w);
+    //push_sp(reg[r]);
+    //do_mov(0010r26);
+    do_mov((0010046 + 0100 * r));
+    reg[r] = pc;
+    trace(DEBUG, "reg is %06o, jump to %06o, info in %06o, r6 is %06o", r, jump, w_read(0200), reg[6]);
+    pc = jump;
+
+}
+
+void do_rts(word w){
+    word r = (w & 7);
+    pc = (reg[r]);
+    //reg[r] = pop(sp);
+    do_mov((00142600 + r));
+    reg[6] -= WORD;
+    trace(DEBUG, "reg is %06o, jump to %06o, info in %06o, r6 is %06o", r, pc, w_read(0200), reg[6]);
+}
+
 Command cmd[] = {
         {0170000, 0010000, "mov", do_mov},
         {0170000, 0110000, "movb", do_movb},
@@ -491,6 +560,7 @@ Command cmd[] = {
         {0170000, 0120000, "cmpb", do_cmpb},
         {0177000, 0077000, "sob", do_sob},
         {0177000, 0005000, "clr", do_clr},
+        {0177000, 0004000, "jsr", do_jsr},
         {0xFF00, 0x0100, "br", do_br},
         {0xFF00, 0x0200, "bne", do_bne},
         {0xFF00, 0x0300, "beq", do_beq},
@@ -509,6 +579,7 @@ Command cmd[] = {
         {0177700, 0005700, "tst", do_tst},
         {0177700, 0105700, "tstb", do_tstb},
         {0177700, 0000100, "jmp", do_jmp},
+        {0177770, 0000200, "rts", do_rts},
         {0177777, 0000000, "halt", do_halt},
         {0177777, 0000240, "nop", do_nop},
         {0177777, 0000241, "clc", do_clc},
